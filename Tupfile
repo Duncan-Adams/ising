@@ -1,0 +1,11 @@
+include_rules
+
+
+: foreach *.c |> |> {cfiles}
+
+: foreach {cfiles} |> $(COMPILER) $(CFLAGS) -g -c %f -o %o |> %B.o {objs}
+
+: {objs} |> clang -g %f -lm -oising |> ising
+
+
+
