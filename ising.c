@@ -1,12 +1,13 @@
 #include "ising.h"
 #include "stdlib.h"
 #include "math.h"
+#include "stdio.h"
 
 lattice init_lattice(int size, double T) {
 	lattice lat;
 	int i, j;
 	i = j = 0;
-	char s = 0;
+	double s = 0;
 	
 	lat.size = size;
 	lat.T = T;
@@ -14,9 +15,10 @@ lattice init_lattice(int size, double T) {
 	
 	for(j = 0; j < size; j++) {
 		for (i = 0; i < size; i++) {
-			s = rand() % 2;
-			if(s == 0) s = -1;
-			lat.grid[j*size + i] = s;
+			s = rand_range(0, 1);
+			if(s <= 0.5) lat.grid[j*size + i] = 1;
+			if(s > 0.5) lat.grid[j*size + i] = -1;
+			
 		}
 	}
 	
@@ -33,7 +35,7 @@ void free_lattice(lattice *lat) {
 }
 
 
-static char spin(lattice *lat, uint i, uint j) {
+char spin(lattice *lat, uint i, uint j) {
 	if ((i > lat->size) || (j > lat->size)) {
 		return 0;
 	}
@@ -42,7 +44,7 @@ static char spin(lattice *lat, uint i, uint j) {
 }
 
 static double deltaU(lattice *lat, uint i, uint j) {
-    if ((i > lat->size) || (j > lat->size)) {
+    if ((i >= lat->size) || (j >= lat->size)) {
 		return 0.0;
 	}
 	
@@ -50,17 +52,17 @@ static double deltaU(lattice *lat, uint i, uint j) {
 	top = bot = left = right = 0;
 	
 	/* find the four nearest neighbors with periodic boundary conditions*/
-	left  = (i == 0)         ? spin(lat, lat->size, j) : spin(lat, i-1, j);
-	right = (i == lat->size) ? spin(lat, 0, j)         : spin(lat, i+1, j);
+	left  = (i == 0)         ? spin(lat, lat->size - 1, j) : spin(lat, i-1, j);
+	right = (i == lat->size) ? spin(lat, 0, j)             : spin(lat, i+1, j);
 	
-	top = (j == 0)         ? spin(lat, i, lat->size) : spin(lat, i, j - 1);
-	bot = (j == lat->size) ? spin(lat, i, 0)         : spin(lat, i, j + 1);
+	top = (j == 0)         ? spin(lat, i, lat->size - 1) : spin(lat, i, j - 1);
+	bot = (j == lat->size) ? spin(lat, i, 0)             : spin(lat, i, j + 1);
 	
 	return 2*spin(lat, i, j)*(top + bot + left + right);
 }
 
 static void flip(lattice *lat, uint i, uint j) {
-    if ((i > lat->size) || (j > lat->size)) {
+    if ((i >= lat->size) || (j >= lat->size)) {
 		return;
 	}
 	
@@ -78,10 +80,16 @@ void ising_iter(lattice *lat) {
 	j = (rand() % lat->size);
 
     dE = deltaU(lat, i, j);
-
 	if (dE <= 0) {
 		flip(lat, i, j);
-	} else if ( ((double)rand()/(double)(RAND_MAX)) < exp(-dE/(lat->T)) ) {
+	} else if ( rand_range(0, 1) < exp(-dE/(lat->T)) ) {
 		flip(lat, i, j);
 	}
+
+}
+
+
+double rand_range(double min_n, double max_n)
+{
+    return (double)rand()/RAND_MAX * (max_n - min_n) + min_n;
 }
